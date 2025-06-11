@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reinos Ocultos Jornadas</title>
+    <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23E53E3E" d="M12,2C12,2,8,7.9,8,11.5c0,2.2,1.8,4,4,4s4-1.8,4-4C16,7.9,12,2,12,2z" /></svg>'>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Lora&display=swap');
+
+        :root {
+            --glow-color: rgba(229, 62, 62, 0.7); /* Brilho vermelho */
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #111111;
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        
+        /* --- Estrutura das Telas --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 2000px;
+            z-index: 2;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .screen.is-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* --- Painel de Vidro Principal --- */
+        .glass-panel {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            height: 300px;
+            box-sizing: border-box;
+            background: rgba(17, 17, 17, 0.25);
+            backdrop-filter: blur(50px) saturate(150%);
+            -webkit-backdrop-filter: blur(50px) saturate(150%);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 80px rgba(0,0,0,0.6);
+            transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+            transform-style: preserve-3d;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* Alterado para center */
+            gap: 30px; /* Adicionado para espaçamento */
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .glass-panel h1 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 3.8rem;
+            font-weight: 700;
+            margin: 0;
+            color: #FFFFFF;
+            text-shadow: 0 0 25px rgba(229, 62, 62, 0.5);
+            letter-spacing: 0.1em;
+            line-height: 0.9;
+            text-transform: uppercase;
+        }
+        
+        /* --- Tela de Jornadas --- */
+        #journeys-screen .glass-panel {
+             max-width: 800px;
+             height: 500px;
+             justify-content: space-between;
+             gap: 20px;
+             padding: 40px;
+        }
+         #journeys-screen h2 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 2rem;
+            text-shadow: 0 0 15px rgba(229, 62, 62, 0.5);
+            margin: 0;
+        }
+        .journeys-grid {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+        }
+        .journey-card {
+            flex: 1;
+            background: rgba(17, 17, 17, 0.25);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            text-align: left;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+            cursor: pointer;
+        }
+        .journey-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+        .journey-symbol {
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .journey-symbol svg {
+            width: 70px;
+            height: 70px;
+            fill: #E53E3E;
+            filter: drop-shadow(0 0 8px rgba(229, 62, 62, 0.7));
+            animation: float-animation 4s ease-in-out infinite;
+        }
+        .journey-card:nth-child(2) .journey-symbol svg {
+            animation-delay: 0.5s;
+        }
+        .journey-card:nth-child(3) .journey-symbol svg {
+            animation-delay: 1s;
+        }
+        @keyframes float-animation {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .card-content {
+            padding: 20px;
+            padding-top: 10px;
+            flex-grow: 1;
+            text-align: center;
+        }
+         .card-content h3 {
+            margin: 0 0 10px 0;
+            color: #FFFFFF;
+        }
+         .card-content p {
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: rgba(255,255,255,0.7);
+             margin: 0;
+        }
+        
+        /* --- TELA DE HISTÓRIA (CARDS DESLIZANTES) --- */
+        .story-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+        .story-container {
+            width: 90vw;
+            max-width: 700px;
+            overflow: hidden;
+        }
+        .story-track {
+            display: flex;
+            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        .story-card {
+            width: 100%;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            padding: 0 10px;
+        }
+        .story-card-content {
+            width: 100%;
+            height: 70vh;
+            max-height: 500px;
+            background: rgba(17, 17, 17, 0.25);
+            backdrop-filter: blur(50px) saturate(150%);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .story-card-content.cover h2 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            text-shadow: 0 0 25px rgba(229, 62, 62, 0.5);
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        .story-card-content h3 {
+             font-family: 'Cinzel Decorative', serif;
+             color: #E53E3E;
+             font-size: 1.8rem;
+             margin-bottom: 20px;
+        }
+        .story-card-content p {
+            font-family: 'Lora', serif;
+            color: rgba(255,255,255,0.85);
+            font-size: 1.1rem;
+            line-height: 1.7;
+            max-width: 80%;
+        }
+
+        .story-nav {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .nav-button {
+             cursor: pointer;
+             background: rgba(255,255,255,0.1);
+             border-radius: 50%;
+             width: 40px;
+             height: 40px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             transition: all 0.2s;
+        }
+        .nav-button:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+        .nav-button.is-hidden {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        .nav-button svg { width: 20px; height: 20px; stroke: #fff; }
+        
+
+        /* --- Botões --- */
+        .cta-button {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: transparent;
+            border: 1px solid rgba(229, 62, 62, 0.8);
+            color: rgba(229, 62, 62, 0.9);
+            padding: 10px 22px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s ease-out;
+            cursor: pointer;
+        }
+        .cta-button:hover {
+            background: #E53E3E;
+            border-color: #E53E3E;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(229, 62, 62, 0.4);
+            color: #fff;
+        }
+        
+        /* --- Efeito de Transição --- */
+        #transition-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s cubic-bezier(0.7, 0, 0.3, 1);
+        }
+         #transition-overlay.is-active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 24px;
+            pointer-events: none;
+            z-index: -1;
+            background: radial-gradient(
+                800px circle at var(--mouse-x) var(--mouse-y),
+                var(--glow-color),
+                transparent 50%
+            );
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+        .screen:not(#story-screen):hover .glass-panel::before {
+            opacity: 0.1;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas>
+    <div id="transition-overlay"></div>
+
+    <!-- Tela Inicial -->
+    <div id="home-screen" class="screen">
+        <div class="glass-panel">
+            <h1>REINOS<br>OCULTOS</h1>
+            <a id="journeys-btn" class="cta-button">Conheça nossas jornadas</a>
+        </div>
+    </div>
+
+    <!-- Tela de Jornadas -->
+    <div id="journeys-screen" class="screen is-hidden">
+        <div class="glass-panel">
+            <h2>Nossas Jornadas</h2>
+            <div class="journeys-grid">
+                <div class="journey-card" data-journey="dragon">
+                    <div class="journey-symbol">
+                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12,2C12,2,8,7.9,8,11.5c0,2.2,1.8,4,4,4s4-1.8,4-4C16,7.9,12,2,12,2z"></path></svg>
+                    </div>
+                    <div class="card-content"><h3>A Saga do Dragão</h3><p>Viaje por terras ancestrais e descubra os segredos por trás da última linhagem de dragões.</p></div>
+                </div>
+                <div class="journey-card" data-journey="magic">
+                    <div class="journey-symbol">
+                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2l2.35 7.18h7.55l-6.1 4.44 2.35 7.18L12 16.34l-6.15 4.46 2.35-7.18-6.1-4.44h7.55L12 2z"/></svg>
+                    </div>
+                    <div class="card-content"><h3>O Despertar da Magia</h3><p>Num mundo onde a magia foi esquecida, uma antiga profecia ressurge e muda o destino de todos.</p></div>
+                </div>
+                 <div class="journey-card" data-journey="usurper">
+                    <div class="journey-symbol">
+                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2L4 12l8 10 8-10L12 2zm0 15l-4-5h8l-4 5z"/></svg>
+                    </div>
+                    <div class="card-content"><h3>A Queda do Usurpador</h3><p>Lidere a rebelião contra um tirano e restaure a paz num reino mergulhado na escuridão.</p></div>
+                </div>
+            </div>
+            <a id="back-btn" class="cta-button">Voltar</a>
+        </div>
+    </div>
+    
+    <!-- Tela de História (CARDS) -->
+    <div id="story-screen" class="screen is-hidden">
+        <div class="story-wrapper">
+            <div class="story-container">
+                <div class="story-track" id="story-track">
+                    <!-- Cards de história serão inseridos aqui dinamicamente -->
+                </div>
+            </div>
+            <div class="story-nav">
+                <div class="nav-button" id="prev-card-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                </div>
+                 <a id="story-back-btn" class="cta-button">Voltar às Jornadas</a>
+                <div class="nav-button" id="next-card-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+        void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform vec2 u_resolution; uniform float u_time;
+        float random (vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
+        float noise (vec2 st) {
+            vec2 i = floor(st); vec2 f = fract(st);
+            float a = random(i); float b = random(i + vec2(1.0, 0.0));
+            float c = random(i + vec2(0.0, 1.0)); float d = random(i + vec2(1.0, 1.0));
+            vec2 u = f * f * (3.0 - 2.0 * f);
+            return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+        }
+        float fbm (vec2 st) {
+            float value = 0.0; float amplitude = .5; float frequency = 0.;
+            for (int i = 0; i < 5; i++) {
+                value += amplitude * noise(st);
+                st *= 2.; amplitude *= .5;
+            }
+            return value;
+        }
+        void main() {
+            vec2 st = gl_FragCoord.xy/u_resolution.xy;
+            st.x *= u_resolution.x / u_resolution.y;
+            vec3 bg_color = vec3(0.06, 0.06, 0.06);
+            vec3 smoke_color = vec3(0.8, 0.15, 0.15);
+            float f1 = fbm(st * 1.5 + u_time * 0.1);
+            float f2 = fbm(st * 2.5 - u_time * 0.05);
+            float smoke_mask = pow(f1 * f2, 2.0);
+            float smoke_intensity = smoke_mask * 0.8; 
+            vec3 final_color = mix(bg_color, smoke_color, smoke_intensity);
+            gl_FragColor = vec4(final_color, 1.0);
+        }
+    </script>
+    
+    <script>
+        // --- CENA 3D COM SHADER ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas') });
+        const clock = new THREE.Clock();
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const uniforms = {
+            u_time: { value: 0.0 },
+            u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+        };
+        const material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            vertexShader: document.getElementById('vertexShader').textContent,
+            fragmentShader: document.getElementById('fragmentShader').textContent
+        });
+        const plane = new THREE.Mesh(geometry, material);
+        scene.add(plane);
+        function resize() { renderer.setSize(window.innerWidth, window.innerHeight); uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight); }
+        window.addEventListener('resize', resize, false);
+        resize();
+        function animate() {
+            requestAnimationFrame(animate);
+            uniforms.u_time.value = clock.getElapsedTime();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- INTERAÇÃO DO PAINEL DE VIDRO ---
+        document.querySelectorAll('.screen').forEach(screen => {
+            const panel = screen.querySelector('.glass-panel');
+            if (panel) {
+                screen.addEventListener('mousemove', (e) => {
+                    let rotationIntensity = (screen.id === 'journeys-screen') ? 4 : 15;
+                    const { width, height, left, top } = panel.getBoundingClientRect();
+                    const x = e.clientX - left; const y = e.clientY - top;
+                    const rotateX = ((y / height) - 0.5) * -rotationIntensity;
+                    const rotateY = ((x / width) - 0.5) * rotationIntensity;
+                    panel.style.transform = `perspective(2000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+                    panel.style.setProperty('--mouse-x', `${x}px`);
+                    panel.style.setProperty('--mouse-y', `${y}px`);
+                });
+                screen.addEventListener('mouseleave', () => {
+                    panel.style.transform = `perspective(2000px) rotateX(0) rotateY(0) scale(1)`;
+                });
+            }
+        });
+
+        // --- CONTEÚDO DAS JORNADAS ---
+        const journeyData = {
+            dragon: {
+                title: "A Saga<br>do Dragão",
+                pages: [
+                    { chapter: "Capítulo I", text: "O ar gelado da montanha cortava-lhe o rosto, mas a determinação aquecia o coração de Kael. À sua frente, a entrada da caverna parecia uma boca aberta na rocha..." },
+                    { chapter: "Capítulo II", text: "No interior, a escuridão era quase total, quebrada apenas pelo brilho suave de cristais incrustados nas paredes. Cada passo ecoava, um lembrete solitário da sua presença..." },
+                    { chapter: "Capítulo III", text: "Finalmente, ele viu. Numa câmara ampla, sobre um pedestal de pedra natural, repousava o ovo. Era maior do que as histórias contavam, com escamas que brilhavam..." },
+                    { chapter: "Capítulo IV", text: "Ao tocar a superfície, uma torrente de imagens e memórias ancestrais inundou a sua mente. Viu céus repletos de dragões e batalhas épicas..." }
+                ]
+            },
+            magic: {
+                title: "O Despertar<br>da Magia",
+                pages: [
+                    { chapter: "Prólogo", text: "Num mundo onde a magia foi esquecida, apenas sussurros e lendas restavam. As crianças não sonhavam com feitiços, e os reis não temiam maldições..." },
+                    { chapter: "O Símbolo", text: "Elara encontrou o amuleto numa caixa empoeirada no sótão. Não parecia mais que uma bugiganga, até que a gema em seu centro brilhou com uma luz própria..." },
+                ]
+            },
+             usurper: {
+                title: "A Queda<br>do Usurpador",
+                pages: [
+                    { chapter: "A Tirania", text: "O reinado do Rei Malakor era uma ferida aberta na terra. A fome e o medo eram as únicas moedas correntes, e a esperança, um luxo esquecido..." },
+                    { chapter: "A Centelha", text: "A rebelião começou não com um grito de guerra, mas com um ato de bondade: um pão partilhado. Esse pequeno gesto acendeu uma chama que o tirano não pôde apagar..." },
+                    { chapter: "O Confronto", text: "As portas do castelo rangeram. De um lado, um exército forjado no desespero. Do outro, um rei cuja coroa pesava com o sangue dos inocentes..." }
+                ]
+            }
+        };
+
+        // --- LÓGICA DE NAVEGAÇÃO ---
+        const journeysBtn = document.getElementById('journeys-btn');
+        const backBtn = document.getElementById('back-btn');
+        const storyBackBtn = document.getElementById('story-back-btn');
+        const homeScreen = document.getElementById('home-screen');
+        const journeysScreen = document.getElementById('journeys-screen');
+        const storyScreen = document.getElementById('story-screen');
+        const transitionOverlay = document.getElementById('transition-overlay');
+        
+        function navigateTo(screenToShow, screenToHide) {
+            transitionOverlay.classList.add('is-active');
+            transitionOverlay.addEventListener('transitionend', function handler() {
+                screenToHide.classList.add('is-hidden');
+                screenToShow.classList.remove('is-hidden');
+                
+                if (screenToShow.id !== 'story-screen') {
+                   storyController.reset();
+                }
+
+                window.requestAnimationFrame(() => {
+                    transitionOverlay.classList.remove('is-active');
+                });
+                transitionOverlay.removeEventListener('transitionend', handler);
+            }, { once: true });
+        }
+        
+        journeysBtn.addEventListener('click', (e) => { e.preventDefault(); navigateTo(journeysScreen, homeScreen); });
+        backBtn.addEventListener('click', (e) => { e.preventDefault(); navigateTo(homeScreen, journeysScreen); });
+        storyBackBtn.addEventListener('click', (e) => { e.preventDefault(); navigateTo(journeysScreen, storyScreen); });
+
+        document.querySelectorAll('.journey-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const journeyId = card.dataset.journey;
+                storyController.loadJourney(journeyId);
+                navigateTo(storyScreen, journeysScreen);
+            });
+        });
+
+        // --- LÓGICA DO CARROSSEL DE HISTÓRIAS ---
+        const storyController = {
+            currentIndex: 0,
+            
+            elements: {
+                track: document.getElementById('story-track'),
+                prevBtn: document.getElementById('prev-card-btn'),
+                nextBtn: document.getElementById('next-card-btn'),
+            },
+            
+            init() {
+                this.setupEventListeners();
+            },
+            
+            setupEventListeners() {
+                this.elements.prevBtn.addEventListener('click', () => this.slideTo('prev'));
+                this.elements.nextBtn.addEventListener('click', () => this.slideTo('next'));
+            },
+
+            loadJourney(journeyId) {
+                const data = journeyData[journeyId];
+                if (!data) return;
+                
+                this.elements.track.innerHTML = ''; // Limpa o conteúdo anterior
+
+                // Cria o card da capa
+                const coverCard = this.createCard(data.title, null, true);
+                this.elements.track.appendChild(coverCard);
+
+                // Cria os cards das páginas
+                data.pages.forEach(page => {
+                    const pageCard = this.createCard(page.chapter, page.text, false);
+                    this.elements.track.appendChild(pageCard);
+                });
+
+                this.totalCards = this.elements.track.children.length;
+                this.reset();
+            },
+            
+            createCard(title, text, isCover) {
+                const card = document.createElement('div');
+                card.className = 'story-card';
+                
+                const content = document.createElement('div');
+                content.className = 'story-card-content';
+                
+                if(isCover) {
+                    content.classList.add('cover');
+                    const h2 = document.createElement('h2');
+                    h2.innerHTML = title;
+                    content.appendChild(h2);
+                } else {
+                    const h3 = document.createElement('h3');
+                    h3.textContent = title;
+                    const p = document.createElement('p');
+                    p.textContent = text;
+                    content.appendChild(h3);
+                    content.appendChild(p);
+                }
+
+                card.appendChild(content);
+                return card;
+            },
+            
+            updateNav() {
+                this.elements.prevBtn.classList.toggle('is-hidden', this.currentIndex === 0);
+                this.elements.nextBtn.classList.toggle('is-hidden', this.currentIndex === this.totalCards - 1);
+            },
+
+            reset() {
+                this.currentIndex = 0;
+                this.elements.track.style.transform = `translateX(0%)`;
+                this.updateNav();
+            },
+
+            slideTo(direction) {
+                const isNext = direction === 'next';
+                if (isNext && this.currentIndex >= this.totalCards - 1) return;
+                if (!isNext && this.currentIndex <= 0) return;
+
+                this.currentIndex += isNext ? 1 : -1;
+                const offset = this.currentIndex * -100;
+                this.elements.track.style.transform = `translateX(${offset}%)`;
+                this.updateNav();
+            }
+        };
+
+        storyController.init();
+
+    </script>
+</body>
+</html>
